@@ -7766,7 +7766,7 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
                 qemu_log("before:  pc_start: 0x%lx  sc_base:%lx   pc: 0x%lx  pc.next:0x%lx  rip:0x%lx\n",s->pc_start,s->cs_base, s->pc, s->base.pc_next, env->eip);
                 
 
-                helper_uiret(env);
+                // helper_uiret(env);
                 uiret_called = true;
                 // gen_jmp_im(s, env->eip);
                 // gen_jmp(s, env->eip);
