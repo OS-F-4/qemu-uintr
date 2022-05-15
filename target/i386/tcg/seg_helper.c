@@ -971,7 +971,8 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         // qemu_log("\n\n the EOI content: 0x%lx\n\n",EOI);
         // cpu_physical_memory_rw(APIC_DEFAULT_ADDRESS + 0xb0, 0, 4, true);
 
-
+        cpl = env->hflags & HF_CPL_MASK;
+        qemu_log("-|-| perv: %d \n", cpl);
         if(send)helper_rrnzero(env);
 
         // 下面的方法会在uihandler 里面报seg fault
@@ -1005,7 +1006,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         break;
     }
     dpl = (e2 >> DESC_DPL_SHIFT) & 3;
-    cpl = env->hflags & HF_CPL_MASK;
+    cpl = env->hflags & HF_CPL_MASK; // 是否事用户态
     /* check privilege if software int */
     if (is_int && dpl < cpl) {
         if(send)qemu_log("pin 2\n");
@@ -2100,7 +2101,7 @@ static inline void helper_ret_protected(CPUX86State *env, int shift,
         cpu_x86_load_seg_cache(env, R_CS, new_cs,
                        get_seg_base(e1, e2),
                        get_seg_limit(e1, e2),
-                       e2);
+                       e2); // 
     } else {
         /* return to different privilege level */
 #ifdef TARGET_X86_64

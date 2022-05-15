@@ -7774,8 +7774,9 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
                 // s->pc = env->eip;
                 // gen_jmp(s, s->pc - s->cs_base);
                 // tcg_gen_exit_tb(NULL, 0);
-                set_cc_op(s, CC_OP_EFLAGS);
-                gen_eob(s);
+                // helper_ret_protected(env, shift, 1, 0, GETPC());
+                // set_cc_op(s, CC_OP_EFLAGS);
+                // gen_eob(s);
                 // s->base.is_jmp = DISAS_NORETURN;
                 qemu_log("-------------\n\n\n");
                 // exit(12);

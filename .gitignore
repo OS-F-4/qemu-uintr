@@ -17,3 +17,4 @@ GTAGS
 *.swp
 *.patch
 *.gcov
+.vscode/
