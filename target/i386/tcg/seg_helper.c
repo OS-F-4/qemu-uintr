@@ -897,8 +897,8 @@ void helper_uiret(CPUX86State *env){
     if(Debug)qemu_log("helper uiret called, now eip: 0x%lx\n", env->eip);
     qemu_log("qemu: now esp is: 0x%lx\n",env->regs[R_ESP]);
     target_ulong temprip, temprfalgs, temprsp, uirrv;
+    env->regs[R_ESP] &= ~0xfLL; /* align stack */
     target_ulong esp = env->regs[R_ESP];
-    esp += 0x60;
     POPQ(esp, uirrv);
     POPQ(esp, temprip);
     POPQ(esp, temprfalgs);
