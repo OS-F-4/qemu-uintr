@@ -7762,11 +7762,11 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
         case 0xec:
             if (prefixes & PREFIX_REPZ){
                 qemu_log("\n\n\n--------------\n");
-                qemu_log("qemu:caught 0xf30f01ec UIRET\n"); // 改
+                qemu_log("qemu:caught 0xf30f01ec UIRET when translate\n"); // 改
                 qemu_log("before:  pc_start: 0x%lx  sc_base:%lx   pc: 0x%lx  pc.next:0x%lx  rip:0x%lx\n",s->pc_start,s->cs_base, s->pc, s->base.pc_next, env->eip);
                 
 
-                // helper_uiret(env);
+                gen_helper_uiret(cpu_env);
                 uiret_called = true;
                 // gen_jmp_im(s, env->eip);
                 // gen_jmp(s, env->eip);
@@ -7776,7 +7776,7 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
                 // tcg_gen_exit_tb(NULL, 0);
                 // helper_ret_protected(env, shift, 1, 0, GETPC());
                 // set_cc_op(s, CC_OP_EFLAGS);
-                // gen_eob(s);
+                gen_eob(s);
                 // s->base.is_jmp = DISAS_NORETURN;
                 qemu_log("-------------\n\n\n");
                 // exit(12);
@@ -7789,7 +7789,7 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
             break;
         case 0xef: /* wrpkru */
             if(prefixes & PREFIX_REPZ){
-                qemu_log("--------------\n\n\n");
+                qemu_log("--------------\n");
                 qemu_log("qemu:caught 0xf30f01ef STUI\n"); // 改
                 env->uintr_uif = 1;
                 qemu_log("--------------\n\n\n");

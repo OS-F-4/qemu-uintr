@@ -25,6 +25,7 @@
 #include "exec/address-spaces.h"
 #include "exec/exec-all.h"
 #include "tcg/helper-tcg.h"
+#include "exec/log.h"
 #include <stdio.h>
 static bool Debug = true;
 
@@ -141,7 +142,7 @@ void helper_write_crN(CPUX86State *env, int reg, target_ulong t0)
 
 void helper_wrmsr(CPUX86State *env)
 {
-    // if(Debug)printf("wrmsr %hx \n",(uint32_t)env->regs[R_ECX]);
+    // if(Debug)qemu_log("wrmsr %hx \n",(uint32_t)env->regs[R_ECX]);
     uint64_t val;
     CPUState *cs = env_cpu(env);
 
@@ -228,31 +229,31 @@ void helper_wrmsr(CPUX86State *env)
 #endif
     // ？？？ 改wrmsr
     case MSR_IA32_UINTR_RR:
-        printf("qemu:wrmsr RR 0x%lx\n",val);
+        qemu_log("qemu:wrmsr RR 0x%lx\n",val);
         env->uintr_rr = val;
         if(val!= 0){
-            if(Debug)printf("getting rr not zero get into helper rr:%ld\n",val);
+            if(Debug)qemu_log("getting rr not zero get into helper rr:%ld\n",val);
             helper_rrnzero(env);
         }
         break;
     case MSR_IA32_UINTR_HANDLER:
-        printf("qemu:wrmsr handler 0x%016lx\n",val);
+        qemu_log("qemu:wrmsr handler 0x%016lx\n",val);
         env->uintr_handler = val;
         break;
     case MSR_IA32_UINTR_STACKADJUST:
-        printf("qemu:wrmsr stackadjust 0x%lx\n",val);
+        qemu_log("qemu:wrmsr stackadjust 0x%lx\n",val);
         env->uintr_stackadjust = val;
         break;
     case MSR_IA32_UINTR_MISC:
-        printf("qemu:wrmsr misc 0x%016lx\n",val);
+        qemu_log("qemu:wrmsr misc 0x%016lx\n",val);
         env->uintr_misc = val;
         break;
     case MSR_IA32_UINTR_PD:
-        printf("qemu:wrmsr pd 0x%016lx\n",val);
+        qemu_log("qemu:wrmsr pd 0x%016lx\n",val);
         env->uintr_pd = val;
         break;
     case MSR_IA32_UINTR_TT:
-        printf("qemu:wrmsr tt 0x%016lx\n",val);
+        qemu_log("qemu:wrmsr tt 0x%016lx\n",val);
         env->uintr_tt = val;
         break;
     case MSR_MTRRphysBase(0):
@@ -408,29 +409,29 @@ void helper_rdmsr(CPUX86State *env)
     //改 rdmsr
     case MSR_IA32_UINTR_RR:
         val = env->uintr_rr;
-        if(Debug)printf("qemu:rdmsr RR 0x%016lx\n",val);
+        if(Debug)qemu_log("qemu:rdmsr RR 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_HANDLER:
         val = env->uintr_handler;
-        printf("qemu:rdmsr handler 0x%016lx\n",val);
+        qemu_log("qemu:rdmsr handler 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_STACKADJUST:
         val = env->uintr_stackadjust;
-        printf("qemu:rdmsr stackadjust 0x%016lx\n",val);
+        qemu_log("qemu:rdmsr stackadjust 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_MISC:
         val = env->uintr_misc;
         rdcount ++;
-        // printf("qemu:rdmsr misc 0x%016lx eip: 0x%016lx\n",val,env->eip);
+        // qemu_log("qemu:rdmsr misc 0x%016lx eip: 0x%016lx\n",val,env->eip);
         if(rdcount > 200) exit(2);
         break;
     case MSR_IA32_UINTR_PD:
         val = env->uintr_pd;
-        printf("qemu:rdmsr pd 0x%016lx\n",val);
+        qemu_log("qemu:rdmsr pd 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_TT:
         val = env->uintr_tt;
-        printf("qemu:rdmsr tt 0x%016lx\n",val);
+        qemu_log("qemu:rdmsr tt 0x%016lx\n",val);
         break;
     case MSR_SMI_COUNT:
         val = env->msr_smi_count;

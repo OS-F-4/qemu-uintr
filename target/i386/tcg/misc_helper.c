@@ -80,10 +80,10 @@ void helper_rdtsc(CPUX86State *env) // ？？？ 读取时间相关的函数
 
 #define UPID_ON 1
 
-void helper_senduipi(CPUX86State *env ,int reg_index){ // 改
+void helper_senduipi(CPUX86State *env ,int reg_index){
     // CPUState *cs = env_cpu(env);
     int uitte_index = env->regs[R_EAX];
-    if(Debug)printf("qemu:helper senduipi called receive  regidx:%d, uipiindex: %d\n",reg_index,uitte_index);
+    if(Debug)printf("--------\nqemu:helper senduipi called receive  regidx:%d, uipiindex: %d\n",reg_index,uitte_index);
     int prot;
     CPUState *cs = env_cpu(env);
 
@@ -91,13 +91,13 @@ void helper_senduipi(CPUX86State *env ,int reg_index){ // 改
     uint64_t uitt_phyaddress = get_hphys2(cs, (env->uintr_tt>>3)<<3 , MMU_DATA_LOAD, &prot);
     struct uintr_uitt_entry uitte;
     cpu_physical_memory_rw(uitt_phyaddress + (uitte_index<<4), &uitte, 16,false);
-    if(Debug)printf("qemu: data of uitt valid:%d user_vec:%d  UPID address 0x%016lx \n",uitte.valid, uitte.user_vec,uitte.target_upid_addr);
+    if(Debug)printf("qemu: data of uitt \n| valid:%d | user_vec:%d |  UPID address 0x%016lx \n",uitte.valid, uitte.user_vec,uitte.target_upid_addr);
 
     // read tempUPID from 16 bytes at tempUITTE.UPIDADDR;// under lock
     uint64_t upid_phyaddress = get_hphys2(cs, uitte.target_upid_addr, MMU_DATA_LOAD, &prot);
     struct uintr_upid upid;
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
-    if(Debug)printf("qemu: content of upid:  status:0x%x    nv:0x%x    ndst:0x%x    0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
+    if(Debug)printf("qemu: content of upid:\n | status:0x%x  |  nv:0x%x  |  ndst:0x%x  |  0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
     // tempUPID.PIR[tempUITTE.UV] := 1;
     upid.puir |= 1<<uitte.user_vec;
     
@@ -113,7 +113,7 @@ void helper_senduipi(CPUX86State *env ,int reg_index){ // 改
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
 
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
-    if(Debug)printf("qemu: data write back in upid:  status:0x%x    nv:0x%x    ndst:0x%x    0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
+    if(Debug)printf("qemu: data write back in upid:\n | status:0x%x  |  nv:0x%x | ndst:0x%x | puir 0x%016lx\n---------\n\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
 
 
     
