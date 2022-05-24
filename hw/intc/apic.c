@@ -738,7 +738,7 @@ static void apic_send_msi(MSIMessage *msi)
     /* XXX: Ignore redirection hint. */
     apic_deliver_irq(dest, dest_mode, delivery, vector, trigger_mode);
 }
-
+extern bool recognized;
 static void apic_mem_write(void *opaque, hwaddr addr, uint64_t val,
                            unsigned size)
 {
@@ -788,6 +788,7 @@ static void apic_mem_write(void *opaque, hwaddr addr, uint64_t val,
     case 0x0a:
         break;
     case 0x0b: /* EOI */
+        if(Debug && recognized)qemu_log("~ ~ ~ ~EOI called in mem wirte\n");
         apic_eoi(s);
         break;
     case 0x0d:
@@ -871,7 +872,8 @@ static const MemoryRegionOps apic_io_ops = {
 };
 
 static void apic_realize(DeviceState *dev, Error **errp)
-{
+{   
+    if(Debug)qemu_log("~ ~ ~ ~apic realize called\n");
     APICCommonState *s = APIC(dev);
 
     if (s->id >= MAX_APICS) {
@@ -928,6 +930,20 @@ static const TypeInfo apic_info = {
 static void apic_register_types(void)
 {
     type_register_static(&apic_info);
+}
+
+void apic_clear_eoi(DeviceState *dev){ // 改
+    APICCommonState *s = APIC(dev);
+    int isrv;
+    isrv = get_highest_priority_int(s->isr);
+    if (isrv < 0)
+        return;
+    apic_reset_bit(s->isr, isrv);
+    if (!(s->spurious_vec & APIC_SV_DIRECTED_IO) && apic_get_bit(s->tmr, isrv)) {
+        ioapic_eoi_broadcast(isrv);
+    }
+    apic_sync_vapic(s, SYNC_FROM_VAPIC | SYNC_TO_VAPIC);
+    apic_update_irq(s);
 }
 
 type_init(apic_register_types)

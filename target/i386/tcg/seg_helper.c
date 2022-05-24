@@ -27,6 +27,7 @@
 #include "exec/log.h"
 #include "helper-tcg.h"
 #include "seg_helper.h"
+#include "include/hw/i386/apic_internal.h"
 
 int get_pg_mode(CPUX86State *env)
 {
@@ -878,9 +879,7 @@ void helper_rrnzero(CPUX86State *env){ // 改
     target_ulong esp = env->regs[R_ESP];
     qemu_log("align statck 0x%lx\n",env->regs[R_ESP]);
     PUSHQ(esp, temprsp);
-    // qemu_log("qemu: pushed rsp\n");
     PUSHQ(esp, env->eflags); // PUSHQ(esp, cpu_compute_eflags(env));
-    // qemu_log("qemu: pushed eflags\n");
     PUSHQ(esp, env->eip);
     // qemu_log("the uirr is 0x%016lx \n", env->uintr_rr);
     PUSHQ(esp, env->uintr_rr & 0x3f); // // 64-bit push; upper 58 bits pushed as 0
@@ -894,9 +893,11 @@ void helper_rrnzero(CPUX86State *env){ // 改
 }
 
 bool in_uiret_called = false;
+bool recognized = false;
 void helper_uiret(CPUX86State *env){
     if(Debug)qemu_log("\n\n---------\nhelper uiret called,\neip: 0x%lx | sp: 0x%lx\n", env->eip,env->regs[R_ESP]);
     in_uiret_called = true;
+    recognized = false;
     target_ulong temprip, temprfalgs, temprsp, uirrv;
     // env->regs[R_ESP] &= ~0xfLL; /* align stack */
     target_ulong esp = env->regs[R_ESP] -8;
@@ -911,6 +912,21 @@ void helper_uiret(CPUX86State *env){
     env->uintr_uif = 1;
 }
 
+static void helper_clear_eoi(CPUX86State *env){
+        CPUState *cs = env_cpu(env);
+        int prot;
+        uint64_t APICaddress = get_hphys2(cs, APIC_DEFAULT_ADDRESS, MMU_DATA_LOAD, &prot);
+        uint64_t EOI;
+        uint64_t zero = 0;
+        cpu_physical_memory_rw(APICaddress + 0xb0, &EOI, 8, false);
+        qemu_log("the physical address of APIC 0x%lx   the EOI content: 0x%lx\n", APICaddress,EOI);
+        cpu_physical_memory_rw(APICaddress + 0xb0, &zero, 4, true);
+        DeviceState *dev = cpu_get_current_apic();
+        X86CPU *cpu = X86_CPU(cs);
+        qemu_log("~ ~ ~ ~ addr of curdev 0x%p | apic state 0x%p \n", dev, cpu->apic_state);
+        // APICCommonState *apic = APIC_COMMON(cpu->apic_state);
+        apic_clear_eoi(dev);
+}
 
 
 
@@ -938,12 +954,11 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     bool send = false;
     if(intno == UINTR_UINV ){
         qemu_log("recognize uintr\n");
-
+        recognized = true;
         if(env->uintr_uif == 0){
             qemu_log("--uif not zero, return\n");
             return;
         }
-        // 清除apic的
         int prot;
         CPUState *cs = env_cpu(env);
         uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
@@ -959,21 +974,17 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
 
 
-        uint64_t APICaddress = get_hphys2(cs, APIC_DEFAULT_ADDRESS, MMU_DATA_LOAD, &prot);
-        uint64_t EOI;
-        uint64_t zero = 0;
-        cpu_physical_memory_rw(APICaddress + 0xb0, &EOI, 8, false);
-        qemu_log("the physical address of APIC 0x%lx   the EOI content: 0x%lx\n", APICaddress,EOI);
-        cpu_physical_memory_rw(APICaddress + 0xb0, &zero, 4, true);
+        helper_clear_eoi(env);
+        
 
-        // apic_mem_write(cs, )
         // uint64_t EOI;       
         // cpu_physical_memory_rw(APIC_DEFAULT_ADDRESS + 0xb0, &EOI, 8, false);
         // qemu_log("\n\n the EOI content: 0x%lx\n\n",EOI);
         // cpu_physical_memory_rw(APIC_DEFAULT_ADDRESS + 0xb0, 0, 4, true);
 
-        cpl = env->hflags & HF_CPL_MASK;
-        qemu_log("-|-| perv: %d \n", cpl);
+        //查看当前的权级
+        // cpl = env->hflags & HF_CPL_MASK;
+        // qemu_log("-|-| perv: %d \n", cpl);
         if(send)helper_rrnzero(env);
 
         // 下面的方法会在uihandler 里面报seg fault
