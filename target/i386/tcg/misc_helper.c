@@ -23,7 +23,8 @@
 #include "exec/helper-proto.h"
 #include "exec/exec-all.h"
 #include "helper-tcg.h"
-#include <stdio.h>
+//改
+#include "include/hw/i386/apic_internal.h"
 static bool Debug = true;
 
 /*
@@ -79,11 +80,16 @@ void helper_rdtsc(CPUX86State *env) // ？？？ 读取时间相关的函数
 
 
 #define UPID_ON 1
-
+static bool former = false;
+static bool current = true;
 void helper_senduipi(CPUX86State *env ,int reg_index){
-    // CPUState *cs = env_cpu(env);
+    uint32_t uittsz = (uint32_t)env->uintr_misc;
     int uitte_index = env->regs[R_EAX];
-    if(Debug)printf("--------\nqemu:helper senduipi called receive  regidx:%d, uipiindex: %d\n",reg_index,uitte_index);
+    if(Debug)qemu_log("--------\nqemu:helper senduipi called receive  regidx:%d, uipiindex: %d\n",reg_index,uitte_index);
+    if (uitte_index > uittsz){
+        raise_exception_ra(env, EXCP0D_GPF, GETPC());
+    }
+
     int prot;
     CPUState *cs = env_cpu(env);
 
@@ -91,32 +97,44 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     uint64_t uitt_phyaddress = get_hphys2(cs, (env->uintr_tt>>3)<<3 , MMU_DATA_LOAD, &prot);
     struct uintr_uitt_entry uitte;
     cpu_physical_memory_rw(uitt_phyaddress + (uitte_index<<4), &uitte, 16,false);
-    if(Debug)printf("qemu: data of uitt \n| valid:%d | user_vec:%d |  UPID address 0x%016lx \n",uitte.valid, uitte.user_vec,uitte.target_upid_addr);
+    if(Debug && former)qemu_log("qemu: data of uitt \n| valid:%d | user_vec:%d |  UPID address 0x%016lx \n",uitte.valid, uitte.user_vec,uitte.target_upid_addr);
 
     // read tempUPID from 16 bytes at tempUITTE.UPIDADDR;// under lock
     uint64_t upid_phyaddress = get_hphys2(cs, uitte.target_upid_addr, MMU_DATA_LOAD, &prot);
     struct uintr_upid upid;
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
-    if(Debug)printf("qemu: content of upid:\n | status:0x%x  |  nv:0x%x  |  ndst:0x%x  |  0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
+    if(Debug && former)qemu_log("qemu: content of upid:\n | status:0x%x  |  nv:0x%x  |  ndst:0x%x  |  0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
     // tempUPID.PIR[tempUITTE.UV] := 1;
     upid.puir |= 1<<uitte.user_vec;
     
+    bool sendNotify;
     //IF tempUPID.SN = tempUPID.ON = 0
-    if(upid.nc.status == 0){
+    if((upid.nc.status&0x11) == 0){
     //THEN  tempUPID.ON := 1;   sendNotify := 1;
         upid.nc.status |= UPID_ON;
-        
+        sendNotify = true;
     }else{ // ELSE sendNotify := 0;
-
+        sendNotify = false;
     }
     //write tempUPID to 16 bytes at tempUITTE.UPIDADDR;// release lock
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
 
-    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
-    if(Debug)printf("qemu: data write back in upid:\n | status:0x%x  |  nv:0x%x | ndst:0x%x | puir 0x%016lx\n---------\n\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
+    if(Debug && former)qemu_log("qemu: data write back in upid:\n | status:0x%x  |  nv:0x%x | ndst:0x%x | puir 0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
 
+    if(Debug && current){
+            qemu_log("the ndst is %d\n", upid.nc.ndst);
+            DeviceState *dev = cpu_get_current_apic();
+            int id = get_apic_id(dev);
+            qemu_log("the apic id is %d\n", id);
+            qemu_log("sendnotify: %d\n", sendNotify);
+    }
+    if(sendNotify){
+        if(Debug && current){
+            qemu_log("the ndst is %d\n", upid.nc.ndst);
+        }
+    }
 
-    
+    if(Debug)qemu_log("---------\n\n");
 }
 
 

@@ -788,7 +788,7 @@ static void apic_mem_write(void *opaque, hwaddr addr, uint64_t val,
     case 0x0a:
         break;
     case 0x0b: /* EOI */
-        if(Debug && recognized)qemu_log("~ ~ ~ ~EOI called in mem wirte\n");
+        // if(Debug && recognized)qemu_log("~ ~ ~ ~EOI called in mem wirte\n");
         apic_eoi(s);
         break;
     case 0x0d:
@@ -944,6 +944,11 @@ void apic_clear_eoi(DeviceState *dev){ // 改
     }
     apic_sync_vapic(s, SYNC_FROM_VAPIC | SYNC_TO_VAPIC);
     apic_update_irq(s);
+}
+
+int get_apic_id(DeviceState *dev){
+    APICCommonState *s = APIC(dev);
+    return s->id;
 }
 
 type_init(apic_register_types)

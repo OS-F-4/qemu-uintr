@@ -18,6 +18,7 @@ uint8_t cpu_get_apic_tpr(DeviceState *s);
 void apic_init_reset(DeviceState *s);
 void apic_sipi(DeviceState *s);
 void apic_clear_eoi(DeviceState *s); // 改
+int get_apic_id(DeviceState *dev); //改
 void apic_poll_irq(DeviceState *d);
 void apic_designate_bsp(DeviceState *d, bool bsp);
 int apic_get_highest_priority_irr(DeviceState *dev);

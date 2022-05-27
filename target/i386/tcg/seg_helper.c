@@ -864,32 +864,34 @@ static inline target_ulong get_rsp_from_tss(CPUX86State *env, int level)
 
 
 static bool Debug = true;
+static bool former = false;
 void helper_rrnzero(CPUX86State *env){ // 改
     if(Debug)qemu_log("------\nrrnzero called handler: 0x%lx  rr: 0x%lx\n", env->uintr_handler,env->uintr_rr);
     target_ulong temprsp = env->regs[R_ESP];
     qemu_log("origin |esp 0x%lx  | eip 0x%lx | eflags: 0x%lx\n",env->regs[R_ESP], env->eip, env->eflags);
     if(env->uintr_stackadjust &1){ // adjust[0] = 1
         env->regs[R_ESP] = env->uintr_stackadjust;
-        qemu_log("set  statck 0x%lx\n",env->regs[R_ESP]);
+        if(Debug && former)qemu_log("set  statck 0x%lx\n",env->regs[R_ESP]);
     }else{
         env->regs[R_ESP] -= env->uintr_stackadjust;
-        qemu_log("move statck 0x%lx\n",env->regs[R_ESP]);
+        if(Debug && former)qemu_log("move statck 0x%lx\n",env->regs[R_ESP]);
     }
     env->regs[R_ESP] &= ~0xfLL; /* align stack */
     target_ulong esp = env->regs[R_ESP];
-    qemu_log("align statck 0x%lx\n",env->regs[R_ESP]);
+    if(Debug && former)qemu_log("align statck 0x%lx\n",env->regs[R_ESP]);
     PUSHQ(esp, temprsp);
     PUSHQ(esp, env->eflags); // PUSHQ(esp, cpu_compute_eflags(env));
     PUSHQ(esp, env->eip);
     // qemu_log("the uirr is 0x%016lx \n", env->uintr_rr);
     PUSHQ(esp, env->uintr_rr & 0x3f); // // 64-bit push; upper 58 bits pushed as 0
-    qemu_log("push finish now esp is: 0x%lx |",esp);
+    if(Debug && former)qemu_log("push finish now esp is: 0x%lx |",esp);
     env->uintr_rr = 0; // clear rr
     env->regs[R_ESP] = esp;
     env->eflags &= ~(TF_MASK | RF_MASK);
     env->eip = env->uintr_handler;
     env->uintr_uif = 0;
-    qemu_log("qemu: eip: 0x%lx\n--------\n",env->eip);
+    if(Debug && former)qemu_log("qemu: eip: 0x%lx\n",env->eip);
+    if(Debug)qemu_log("--------\n");
 }
 
 bool in_uiret_called = false;
@@ -913,18 +915,7 @@ void helper_uiret(CPUX86State *env){
 }
 
 static void helper_clear_eoi(CPUX86State *env){
-        CPUState *cs = env_cpu(env);
-        int prot;
-        uint64_t APICaddress = get_hphys2(cs, APIC_DEFAULT_ADDRESS, MMU_DATA_LOAD, &prot);
-        uint64_t EOI;
-        uint64_t zero = 0;
-        cpu_physical_memory_rw(APICaddress + 0xb0, &EOI, 8, false);
-        qemu_log("the physical address of APIC 0x%lx   the EOI content: 0x%lx\n", APICaddress,EOI);
-        cpu_physical_memory_rw(APICaddress + 0xb0, &zero, 4, true);
         DeviceState *dev = cpu_get_current_apic();
-        X86CPU *cpu = X86_CPU(cs);
-        qemu_log("~ ~ ~ ~ addr of curdev 0x%p | apic state 0x%p \n", dev, cpu->apic_state);
-        // APICCommonState *apic = APIC_COMMON(cpu->apic_state);
         apic_clear_eoi(dev);
 }
 
