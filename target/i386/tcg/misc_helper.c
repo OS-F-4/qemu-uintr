@@ -80,12 +80,11 @@ void helper_rdtsc(CPUX86State *env) // ？？？ 读取时间相关的函数
 
 
 #define UPID_ON 1
-static bool former = false;
+// static bool former = false;
 static bool current = true;
 void helper_senduipi(CPUX86State *env ,int reg_index){
     uint32_t uittsz = (uint32_t)env->uintr_misc;
     int uitte_index = env->regs[R_EAX];
-    if(Debug)qemu_log("--------\nqemu:helper senduipi called receive  regidx:%d, uipiindex: %d\n",reg_index,uitte_index);
     if (uitte_index > uittsz){
         raise_exception_ra(env, EXCP0D_GPF, GETPC());
     }
@@ -97,13 +96,11 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     uint64_t uitt_phyaddress = get_hphys2(cs, (env->uintr_tt>>3)<<3 , MMU_DATA_LOAD, &prot);
     struct uintr_uitt_entry uitte;
     cpu_physical_memory_rw(uitt_phyaddress + (uitte_index<<4), &uitte, 16,false);
-    if(Debug && former)qemu_log("qemu: data of uitt \n| valid:%d | user_vec:%d |  UPID address 0x%016lx \n",uitte.valid, uitte.user_vec,uitte.target_upid_addr);
 
     // read tempUPID from 16 bytes at tempUITTE.UPIDADDR;// under lock
     uint64_t upid_phyaddress = get_hphys2(cs, uitte.target_upid_addr, MMU_DATA_LOAD, &prot);
     struct uintr_upid upid;
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
-    if(Debug && former)qemu_log("qemu: content of upid:\n | status:0x%x  |  nv:0x%x  |  ndst:0x%x  |  0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
     // tempUPID.PIR[tempUITTE.UV] := 1;
     upid.puir |= 1<<uitte.user_vec;
     
@@ -119,22 +116,19 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     //write tempUPID to 16 bytes at tempUITTE.UPIDADDR;// release lock
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
 
-    if(Debug && former)qemu_log("qemu: data write back in upid:\n | status:0x%x  |  nv:0x%x | ndst:0x%x | puir 0x%016lx\n", upid.nc.status, upid.nc.nv, upid.nc.ndst, upid.puir);
+
 
     if(Debug && current){
-            qemu_log("the ndst is %d\n", upid.nc.ndst);
-            DeviceState *dev = cpu_get_current_apic();
-            int id = get_apic_id(dev);
-            qemu_log("the apic id is %d\n", id);
-            qemu_log("sendnotify: %d\n", sendNotify);
+            // qemu_log("the ndst is %d\n", upid.nc.ndst);
+            // DeviceState *dev = cpu_get_current_apic();
+            // int id = get_apic_id(dev);
+            // qemu_log("the apic id is %d\n", id);
+            // qemu_log("sendnotify: %d\n", sendNotify);
     }
     if(sendNotify){
-        if(Debug && current){
-            qemu_log("the ndst is %d\n", upid.nc.ndst);
-        }
+
     }
 
-    if(Debug)qemu_log("---------\n\n");
 }
 
 

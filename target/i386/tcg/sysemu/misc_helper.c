@@ -229,7 +229,6 @@ void helper_wrmsr(CPUX86State *env)
 #endif
     // ？？？ 改wrmsr
     case MSR_IA32_UINTR_RR:
-        qemu_log("qemu:wrmsr RR 0x%lx\n",val);
         env->uintr_rr = val;
         if(val!= 0){
             if(Debug)qemu_log("getting rr not zero get into helper rr:%ld\n",val);
@@ -237,23 +236,18 @@ void helper_wrmsr(CPUX86State *env)
         }
         break;
     case MSR_IA32_UINTR_HANDLER:
-        qemu_log("qemu:wrmsr handler 0x%016lx\n",val);
         env->uintr_handler = val;
         break;
     case MSR_IA32_UINTR_STACKADJUST:
-        qemu_log("qemu:wrmsr stackadjust 0x%lx\n",val);
         env->uintr_stackadjust = val;
         break;
     case MSR_IA32_UINTR_MISC:
-        qemu_log("qemu:wrmsr misc 0x%016lx\n",val);
         env->uintr_misc = val;
         break;
     case MSR_IA32_UINTR_PD:
-        qemu_log("qemu:wrmsr pd 0x%016lx\n",val);
         env->uintr_pd = val;
         break;
     case MSR_IA32_UINTR_TT:
-        qemu_log("qemu:wrmsr tt 0x%016lx\n",val);
         env->uintr_tt = val;
         break;
     case MSR_MTRRphysBase(0):
@@ -409,15 +403,12 @@ void helper_rdmsr(CPUX86State *env)
     //改 rdmsr
     case MSR_IA32_UINTR_RR:
         val = env->uintr_rr;
-        if(Debug)qemu_log("qemu:rdmsr RR 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_HANDLER:
         val = env->uintr_handler;
-        qemu_log("qemu:rdmsr handler 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_STACKADJUST:
         val = env->uintr_stackadjust;
-        qemu_log("qemu:rdmsr stackadjust 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_MISC:
         val = env->uintr_misc;
@@ -430,11 +421,9 @@ void helper_rdmsr(CPUX86State *env)
         break;
     case MSR_IA32_UINTR_PD:
         val = env->uintr_pd;
-        qemu_log("qemu:rdmsr pd 0x%016lx\n",val);
         break;
     case MSR_IA32_UINTR_TT:
         val = env->uintr_tt;
-        qemu_log("qemu:rdmsr tt 0x%016lx\n",val);
         break;
     case MSR_SMI_COUNT:
         val = env->msr_smi_count;

@@ -863,51 +863,40 @@ static inline target_ulong get_rsp_from_tss(CPUX86State *env, int level)
 
 
 
-static bool Debug = true;
-static bool former = false;
+// static bool Debug = true;
+// static bool former = false;
 void helper_rrnzero(CPUX86State *env){ // 改
-    if(Debug)qemu_log("------\nrrnzero called handler: 0x%lx  rr: 0x%lx\n", env->uintr_handler,env->uintr_rr);
     target_ulong temprsp = env->regs[R_ESP];
-    qemu_log("origin |esp 0x%lx  | eip 0x%lx | eflags: 0x%lx\n",env->regs[R_ESP], env->eip, env->eflags);
     if(env->uintr_stackadjust &1){ // adjust[0] = 1
         env->regs[R_ESP] = env->uintr_stackadjust;
-        if(Debug && former)qemu_log("set  statck 0x%lx\n",env->regs[R_ESP]);
     }else{
         env->regs[R_ESP] -= env->uintr_stackadjust;
-        if(Debug && former)qemu_log("move statck 0x%lx\n",env->regs[R_ESP]);
     }
     env->regs[R_ESP] &= ~0xfLL; /* align stack */
     target_ulong esp = env->regs[R_ESP];
-    if(Debug && former)qemu_log("align statck 0x%lx\n",env->regs[R_ESP]);
     PUSHQ(esp, temprsp);
     PUSHQ(esp, env->eflags); // PUSHQ(esp, cpu_compute_eflags(env));
     PUSHQ(esp, env->eip);
-    // qemu_log("the uirr is 0x%016lx \n", env->uintr_rr);
     PUSHQ(esp, env->uintr_rr & 0x3f); // // 64-bit push; upper 58 bits pushed as 0
-    if(Debug && former)qemu_log("push finish now esp is: 0x%lx |",esp);
     env->uintr_rr = 0; // clear rr
     env->regs[R_ESP] = esp;
     env->eflags &= ~(TF_MASK | RF_MASK);
     env->eip = env->uintr_handler;
     env->uintr_uif = 0;
-    if(Debug && former)qemu_log("qemu: eip: 0x%lx\n",env->eip);
-    if(Debug)qemu_log("--------\n");
 }
 
 bool in_uiret_called = false;
 bool recognized = false;
 void helper_uiret(CPUX86State *env){
-    if(Debug)qemu_log("\n\n---------\nhelper uiret called,\neip: 0x%lx | sp: 0x%lx\n", env->eip,env->regs[R_ESP]);
     in_uiret_called = true;
     recognized = false;
-    target_ulong temprip, temprfalgs, temprsp, uirrv;
+    target_ulong temprip, temprfalgs, temprsp;
     // env->regs[R_ESP] &= ~0xfLL; /* align stack */
-    target_ulong esp = env->regs[R_ESP] -8;
-    POPQ(esp, uirrv);
+    target_ulong esp = env->regs[R_ESP];
+    // POPQ(esp, uirrv);
     POPQ(esp, temprip);
     POPQ(esp, temprfalgs);
     POPQ(esp, temprsp);
-    qemu_log("qemu:poped values:uirrv:0x%lx | rip:0x%lx  | eflags:0x%lx | sp:0x%lx \n--------\n\n",uirrv,temprip, temprfalgs, temprsp);
     env->eip = temprip;
     env->regs[R_ESP] = temprsp;
     env->eflags = (env->eflags & ~0x254dd5) |(temprfalgs & 0x254dd5);
@@ -944,7 +933,6 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     }
     bool send = false;
     if(intno == UINTR_UINV ){
-        qemu_log("recognize uintr\n");
         recognized = true;
         if(env->uintr_uif == 0){
             qemu_log("--uif not zero, return\n");
@@ -964,28 +952,12 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         }
         cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
 
-
         helper_clear_eoi(env);
         
-
-        // uint64_t EOI;       
-        // cpu_physical_memory_rw(APIC_DEFAULT_ADDRESS + 0xb0, &EOI, 8, false);
-        // qemu_log("\n\n the EOI content: 0x%lx\n\n",EOI);
-        // cpu_physical_memory_rw(APIC_DEFAULT_ADDRESS + 0xb0, 0, 4, true);
-
         //查看当前的权级
         // cpl = env->hflags & HF_CPL_MASK;
         // qemu_log("-|-| perv: %d \n", cpl);
         if(send)helper_rrnzero(env);
-
-        // 下面的方法会在uihandler 里面报seg fault
-        // dpl = (e2 >> DESC_DPL_SHIFT) & 3;
-        // selector = e1 >> 16;
-        // selector = (selector & ~3) | dpl;
-        // cpu_x86_load_seg_cache(env, R_CS, selector,
-        //            get_seg_base(e1, e2),
-        //            get_seg_limit(e1, e2),
-        //            e2);
 
         return;
     }
@@ -1012,12 +984,10 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     cpl = env->hflags & HF_CPL_MASK; // 是否事用户态
     /* check privilege if software int */
     if (is_int && dpl < cpl) {
-        if(send)qemu_log("pin 2\n");
         raise_exception_err(env, EXCP0D_GPF, intno * 16 + 2);
     }
     /* check valid bit */
     if (!(e2 & DESC_P_MASK)) {
-        if(send)qemu_log("pin 3\n");
         raise_exception_err(env, EXCP0B_NOSEG, intno * 16 + 2);
     }
     selector = e1 >> 16;
@@ -1027,28 +997,22 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         raise_exception_err(env, EXCP0D_GPF, 0);
     }
     if (load_segment(env, &e1, &e2, selector) != 0) {
-        if(send)qemu_log("pin 4\n");
         raise_exception_err(env, EXCP0D_GPF, selector & 0xfffc);
     }
     if (!(e2 & DESC_S_MASK) || !(e2 & (DESC_CS_MASK))) {
-        if(send)qemu_log("pin 5\n");
         raise_exception_err(env, EXCP0D_GPF, selector & 0xfffc);
     }
     dpl = (e2 >> DESC_DPL_SHIFT) & 3;
     if (dpl > cpl) {
-        if(send)qemu_log("pin 6\n");
         raise_exception_err(env, EXCP0D_GPF, selector & 0xfffc);
     }
     if (!(e2 & DESC_P_MASK)) {
-        if(send)qemu_log("pin 7\n");
         raise_exception_err(env, EXCP0B_NOSEG, selector & 0xfffc);
     }
     if (!(e2 & DESC_L_MASK) || (e2 & DESC_B_MASK)) {
-        if(send)qemu_log("pin 8\n");
         raise_exception_err(env, EXCP0D_GPF, selector & 0xfffc);
     }
     if (e2 & DESC_C_MASK) {
-        if(send)qemu_log("pin 9\n");
         dpl = cpl;
     }
     if (dpl < cpl || ist != 0) {
@@ -1058,7 +1022,6 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         ss = 0;
     } else {
         /* to same privilege */
-        if(send)qemu_log("pin 10\n");
         if (env->eflags & VM_MASK) {
             raise_exception_err(env, EXCP0D_GPF, selector & 0xfffc);
         }
@@ -1086,7 +1049,6 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         cpu_x86_load_seg_cache(env, R_SS, ss, 0, 0, dpl << DESC_DPL_SHIFT);
     }
     env->regs[R_ESP] = esp;
-    if(send)qemu_log("pin 11\n");
     selector = (selector & ~3) | dpl;
     cpu_x86_load_seg_cache(env, R_CS, selector,
                    get_seg_base(e1, e2),
@@ -1234,7 +1196,6 @@ void do_interrupt_all(X86CPU *cpu, int intno, int is_int,
     if (env->cr[0] & CR0_PE_MASK) { // 改， 中断具体分发，应该不涉及user only
 #if !defined(CONFIG_USER_ONLY)
         if (env->hflags & HF_GUEST_MASK) {
-            qemu_log("HF_GUEST_MASK even \n");
             handle_even_inj(env, intno, is_int, error_code, is_hw, 0);
         }
 #endif
@@ -1244,14 +1205,12 @@ void do_interrupt_all(X86CPU *cpu, int intno, int is_int,
         } else
 #endif
         {   
-            qemu_log("interrupt protected \n");
             do_interrupt_protected(env, intno, is_int, error_code, next_eip,
                                    is_hw);
         }
     } else {
 #if !defined(CONFIG_USER_ONLY)
         if (env->hflags & HF_GUEST_MASK) {
-            qemu_log("HF_GUEST_MASK even inj \n");
             handle_even_inj(env, intno, is_int, error_code, is_hw, 1);
         }
 #endif  
@@ -1260,7 +1219,6 @@ void do_interrupt_all(X86CPU *cpu, int intno, int is_int,
 
 #if !defined(CONFIG_USER_ONLY)
     if (env->hflags & HF_GUEST_MASK) {
-        qemu_log("HF_GUEST_MASK do real \n");
         CPUState *cs = CPU(cpu);
         uint32_t event_inj = x86_ldl_phys(cs, env->vm_vmcb +
                                       offsetof(struct vmcb,
