@@ -936,6 +936,15 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         recognized = true;
         if(env->uintr_uif == 0){
             qemu_log("--uif not zero, return\n");
+            helper_clear_eoi(env);
+            return;
+        }
+        //查看当前的权级
+        cpl = env->hflags & HF_CPL_MASK;
+        qemu_log("-|-| perv: %d \n", cpl);
+        if(cpl != 3){
+            helper_clear_eoi(env);
+            qemu_log("not in user mode return\n");
             return;
         }
         int prot;
@@ -954,9 +963,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
 
         helper_clear_eoi(env);
         
-        //查看当前的权级
-        // cpl = env->hflags & HF_CPL_MASK;
-        // qemu_log("-|-| perv: %d \n", cpl);
+
         if(send)helper_rrnzero(env);
 
         return;
