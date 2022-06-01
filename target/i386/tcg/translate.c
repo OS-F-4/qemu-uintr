@@ -31,8 +31,7 @@
 #include "helper-tcg.h"
 
 #include "exec/log.h"
-#include <stdio.h>
-static bool Debug = true;
+// static bool Debug = true;
 
 #define PREFIX_REPZ   0x01
 #define PREFIX_REPNZ  0x02
@@ -2761,13 +2760,13 @@ static inline void gen_op_movo(DisasContext *s, int d_offset, int s_offset)
 }
 
 static inline void gen_op_movq(DisasContext *s, int d_offset, int s_offset)
-{   if(Debug) qemu_log("qemu: movq %d %d\n",d_offset,s_offset);
+{   
     tcg_gen_ld_i64(s->tmp1_i64, cpu_env, s_offset);
     tcg_gen_st_i64(s->tmp1_i64, cpu_env, d_offset);
 }
 
 static inline void gen_op_movl(DisasContext *s, int d_offset, int s_offset)
-{   if(Debug) qemu_log("qemu: movl %d %d\n",d_offset,s_offset);
+{   
     tcg_gen_ld_i32(s->tmp2_i32, cpu_env, s_offset);
     tcg_gen_st_i32(s->tmp2_i32, cpu_env, d_offset);
 }
@@ -5403,44 +5402,10 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
 }
 */
     case 0x1c7: /* cmpxchg8b */
-        if(prefixes & PREFIX_REPZ){
+        if(prefixes & PREFIX_REPZ){ // SENDUIPI
             modrm = x86_ldub_code(env, s);
-            qemu_log("\n\n--------------\n");
-            qemu_log("qemu: caught 0xf30fc7 SENDUIPI eip:0x%lx\n ",env->eip); // 改 Debug
-            // CPUState *cs = env_cpu(env);
-            // int prot;
-            // uint64_t APICaddress = get_hphys2(cs, APIC_DEFAULT_ADDRESS, MMU_DATA_LOAD, &prot);
-            // uint64_t EOI;
-            // cpu_physical_memory_rw(APICaddress + 0xb0, &EOI, 8, false);
-            // qemu_log("the physical address of APIC 0x%lx   the EOI content: 0x%lx\n", APICaddress,EOI);
-
-
-            // s->tmp1_i64 = env->uintr_tt; //地址
-            // tcg_gen_qemu_ld_i64(s->tmp1_i64, s->A0 , 0, MO_LEUQ);
-            // qemu_log("qemu: loaded 0x%lx A0: 0x%lx\n",(uint64_t)((void*)s->tmp1_i64),(uint64_t)s->A0);
-
-
-            // uint64_t content[10]; // read all zero
-            // cpu_physical_memory_rw((env->uintr_tt>>3)<<3,&content,16,false);
-            // if(Debug) qemu_log("0x%lx    xxx               %lx \n %lx \n\n",(env->uintr_tt>>3)<<3, content[0],content[1]);
-
-            // int mem_idx = cpu_mmu_index(env, false);  // system segfault
-            // MemOpIdx oi0 = make_memop_idx(MO_LEUQ | MO_ALIGN_16, mem_idx);
-            // uint64_t content = cpu_ldq_le_mmu(env, (env->uintr_tt>>3)<<3, oi0, 0);
-            // if(Debug) qemu_log(" %lx \n\n\n",content);
-
-
-            // TCGv t0;
-            // t0 = tcg_temp_local_new();
-            // s->A0 = (TCGv)(env->uintr_tt>>3)<<3;
-            // if(Debug)qemu_log("debug: memindex: %x \n",s->mem_index);
-            // if(Debug){qemu_log("debug: before t0: %llx   A0: %llx\n",(long long unsigned)t0,(long long unsigned)s->A0);}
-            // gen_op_ld_v(s, ot, t0, s->A0);
-            // if(Debug){qemu_log("debug: after  t0: %llx   A0: %llx\n",(long long unsigned)t0,(long long unsigned)s->A0);}
-            // tcg_temp_free(t0);
             gen_helper_senduipi(cpu_env, tcg_const_i32(modrm));
             senduipi_called = true;
-            qemu_log("--------------\n\n\n");
             break;
         }
         modrm = x86_ldub_code(env, s);
@@ -7748,7 +7713,6 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
             break;
         case 0xee: /* rdpkru */
             if(prefixes & PREFIX_REPZ){
-                qemu_log("qemu:caught 0xf30fee CLUI\n"); // 改
                 env->uintr_uif = 0;
                 break;
             }
@@ -7760,39 +7724,20 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
             tcg_gen_extr_i64_tl(cpu_regs[R_EAX], cpu_regs[R_EDX], s->tmp1_i64);
             break;
         case 0xec:
-            if (prefixes & PREFIX_REPZ){
-                qemu_log("\n\n\n--------------\n");
-                qemu_log("qemu:caught 0xf30f01ec UIRET when translate\n"); // 改
-                qemu_log("before:  pc_start: 0x%lx  sc_base:%lx   pc: 0x%lx  pc.next:0x%lx  rip:0x%lx\n",s->pc_start,s->cs_base, s->pc, s->base.pc_next, env->eip);
-                
-
+            if (prefixes & PREFIX_REPZ){ // UIRET
                 gen_helper_uiret(cpu_env);
                 uiret_called = true;
-                // gen_jmp_im(s, env->eip);
-                // gen_jmp(s, env->eip);
-                qemu_log("pc_start: 0x%lx  sc_base:%lx   pc: 0x%lx  rip:0x%lx\n",s->pc_start,s->cs_base, s->pc, env->eip);
-                // s->pc = env->eip;
-                // gen_jmp(s, s->pc - s->cs_base);
-                // tcg_gen_exit_tb(NULL, 0);
-                // helper_ret_protected(env, shift, 1, 0, GETPC());
-                // set_cc_op(s, CC_OP_EFLAGS);
                 gen_eob(s);
-                // s->base.is_jmp = DISAS_NORETURN;
-                qemu_log("-------------\n\n\n");
-                // exit(12);
             }
             break;
         case 0xed:
-            if (prefixes & PREFIX_REPZ){
+            if (prefixes & PREFIX_REPZ){ // TESTUI
                 qemu_log("qemu:caught 0xf30f01ed TESTUI\n"); // 改
             }
             break;
         case 0xef: /* wrpkru */
-            if(prefixes & PREFIX_REPZ){
-                qemu_log("--------------\n");
-                qemu_log("qemu:caught 0xf30f01ef STUI\n"); // 改
+            if(prefixes & PREFIX_REPZ){ // STUI
                 env->uintr_uif = 1;
-                qemu_log("--------------\n\n\n");
                 break;
             }
             if (prefixes & PREFIX_LOCK) {

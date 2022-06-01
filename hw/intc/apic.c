@@ -512,7 +512,7 @@ void apic_sipi(DeviceState *dev)
 
 static void apic_deliver(DeviceState *dev, uint8_t dest, uint8_t dest_mode,
                          uint8_t delivery_mode, uint8_t vector_num,
-                         uint8_t trigger_mode)
+                         uint8_t trigger_mode) // delivery mode APIC_DM_FIXED  dest mode: 0 , trigger_mode  trigger: APIC_TRIGGER_EDGE
 {
     APICCommonState *s = APIC(dev);
     uint32_t deliver_bitmask[MAX_APIC_WORDS];
@@ -949,6 +949,12 @@ void apic_clear_eoi(DeviceState *dev){ // 改
 int get_apic_id(DeviceState *dev){
     APICCommonState *s = APIC(dev);
     return s->id;
+}
+
+void send_ipi(DeviceState *dev, uint8_t dest, uint8_t nv){
+    qemu_mutex_lock_iothread();
+    apic_deliver(dev, dest, 0 ,APIC_DM_FIXED, nv, APIC_TRIGGER_EDGE);
+    qemu_mutex_unlock_iothread();
 }
 
 type_init(apic_register_types)

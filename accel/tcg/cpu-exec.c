@@ -343,9 +343,7 @@ const void *HELPER(lookup_tb_ptr)(CPUArchState *env)
  * TCG is not considered a security-sensitive part of QEMU so this does not
  * affect the impact of CFI in environment with high security requirements
  */
-extern bool uiret_called;
-// extern bool senduipi_called;
-extern bool in_uiret_called;
+
 static inline TranslationBlock * QEMU_DISABLE_CFI
 cpu_tb_exec(CPUState *cpu, TranslationBlock *itb, int *tb_exit)
 {
@@ -1007,21 +1005,11 @@ int cpu_exec(CPUState *cpu)
             if (last_tb) {
                 tb_add_jump(last_tb, tb_exit, tb);
             }
-            // if (block_id > 10000)qemu_log("BLOCK: %d  size:%d  icont:%d  \n", block_id,tb->size,tb->icount);
-            // block_id ++;
-            if (in_uiret_called){
-                qemu_log("xxxx   in uiret called before exec tb;\n");
-                in_uiret_called = false;
-            } 
+
+
             cpu_loop_exec_tb(cpu, tb, &last_tb, &tb_exit);
-            if (in_uiret_called){
-                qemu_log("xxxx   in uiret called after exec tb;\n");
-                in_uiret_called = false;
-            } 
-            if (uiret_called) {
-                // helper_uiret(cpu->env_ptr);
-                uiret_called = false;
-            }
+
+
 
             /* Try to align the host and virtual clocks
                if the guest is in advance */
