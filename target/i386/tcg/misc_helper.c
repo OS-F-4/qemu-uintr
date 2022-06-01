@@ -81,7 +81,7 @@ void helper_rdtsc(CPUX86State *env) // ？？？ 读取时间相关的函数
 
 #define UPID_ON 1
 // static bool former = false;
-static bool current = true;
+static bool current = false;
 void helper_senduipi(CPUX86State *env ,int reg_index){
     uint32_t uittsz = (uint32_t)env->uintr_misc;
     int uitte_index = env->regs[R_EAX];
@@ -126,9 +126,8 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
             qemu_log("sendnotify: %d\n", sendNotify);
     }
     if(sendNotify){
-        qemu_log("direct sending\n");
+        if(current)qemu_log("direct sending\n");
         send_ipi(cpu_get_current_apic(), upid.nc.ndst, upid.nc.nv);
-
     }
 
 }
