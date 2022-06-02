@@ -1604,6 +1604,7 @@ typedef struct CPUArchState {  // 寄存器？？？
 #endif
         // 改 ？？？
     uint64_t uintr_rr;
+    uint64_t uintr_rrv;
     uint64_t uintr_handler;
     uint64_t uintr_stackadjust;
     uint64_t uintr_misc;

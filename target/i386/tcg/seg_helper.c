@@ -877,7 +877,7 @@ void helper_rrnzero(CPUX86State *env){ // 改
     PUSHQ(esp, temprsp);
     PUSHQ(esp, env->eflags); // PUSHQ(esp, cpu_compute_eflags(env));
     PUSHQ(esp, env->eip);
-    PUSHQ(esp, env->uintr_rr & 0x3f); // // 64-bit push; upper 58 bits pushed as 0
+    PUSHQ(esp, env->uintr_rrv); // 64-bit push; upper 58 bits pushed as 0
     env->uintr_rr = 0; // clear rr
     env->regs[R_ESP] = esp;
     env->eflags &= ~(TF_MASK | RF_MASK);
@@ -941,10 +941,10 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         }
         //查看当前的权级
         cpl = env->hflags & HF_CPL_MASK;
-        qemu_log("-|-| perv: %d \n", cpl);
+        // qemu_log("-|-| perv: %d \n", cpl);
         if(cpl != 3){
             helper_clear_eoi(env);
-            qemu_log("not in user mode return\n");
+            qemu_log("perv: %d not in user mode return\n", cpl);
             return;
         }
         int prot;
@@ -955,7 +955,8 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         upid.nc.status &= (~1); // clear on
         if(upid.puir != 0){
             env->uintr_rr = upid.puir;
-            upid.puir = 0; // clear puir
+            env->uintr_rrv = 63 - __builtin_clzll(env->uintr_rr);
+            upid.puir -= (1 << env->uintr_rrv); // clear puir
             cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true); // write back
             send = true;
         }
