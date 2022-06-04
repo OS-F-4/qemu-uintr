@@ -873,12 +873,13 @@ void helper_rrnzero(CPUX86State *env){ // 改
         env->regs[R_ESP] -= env->uintr_stackadjust;
     }
     env->regs[R_ESP] &= ~0xfLL; /* align stack */
+    uint64_t uintr_rrv = 63 - __builtin_clzll(env->uintr_rr);
     target_ulong esp = env->regs[R_ESP];
     PUSHQ(esp, temprsp);
     PUSHQ(esp, env->eflags); // PUSHQ(esp, cpu_compute_eflags(env));
     PUSHQ(esp, env->eip);
-    PUSHQ(esp, env->uintr_rrv); // 64-bit push; upper 58 bits pushed as 0
-    env->uintr_rr = 0; // clear rr
+    PUSHQ(esp, uintr_rrv); // 64-bit push; upper 58 bits pushed as 0
+    env->uintr_rr &= ~(1 << uintr_rrv); // clear rr
     env->regs[R_ESP] = esp;
     env->eflags &= ~(TF_MASK | RF_MASK);
     env->eip = env->uintr_handler;
@@ -955,8 +956,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         upid.nc.status &= (~1); // clear on
         if(upid.puir != 0){
             env->uintr_rr = upid.puir;
-            env->uintr_rrv = 63 - __builtin_clzll(env->uintr_rr);
-            upid.puir -= (1 << env->uintr_rrv); // clear puir
+            upid.puir = 0; // clear puir
             cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true); // write back
             send = true;
         }
