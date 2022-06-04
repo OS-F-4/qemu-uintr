@@ -7737,7 +7737,7 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
             break;
         case 0xef: /* wrpkru */
             if(prefixes & PREFIX_REPZ){ // STUI
-                env->uintr_uif = 1;
+                gen_helper_stui(cpu_env);
                 break;
             }
             if (prefixes & PREFIX_LOCK) {

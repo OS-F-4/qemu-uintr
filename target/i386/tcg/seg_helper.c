@@ -913,6 +913,7 @@ static void helper_clear_eoi(CPUX86State *env){
 
 /* 64 bit interrupt */
 #define UINTR_UINV 0xec
+static int rrzero_count = 0;
 static void do_interrupt64(CPUX86State *env, int intno, int is_int,
                            int error_code, target_ulong next_eip, int is_hw) // 在用户态中断中 is_hw = 1 !!! ???？？？
 {
@@ -935,17 +936,25 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     bool send = false;
     if(intno == UINTR_UINV ){
         recognized = true;
+        cpl = env->hflags & HF_CPL_MASK;
+        DeviceState *dev = cpu_get_current_apic();
+        int id = get_apic_id(dev);
         if(env->uintr_uif == 0){
-            qemu_log("--uif not zero, return\n");
+            qemu_log("--uif zero,prev:%d | id:%d return\n",cpl, id);
+            rrzero_count +=1; 
+            if(rrzero_count > 200){
+                qemu_log("too many zeros, exit\n");
+                exit(2);
+            }
             helper_clear_eoi(env);
             return;
         }
         //查看当前的权级
-        cpl = env->hflags & HF_CPL_MASK;
+        
         // qemu_log("-|-| perv: %d \n", cpl);
         if(cpl != 3){
             helper_clear_eoi(env);
-            qemu_log("perv: %d not in user mode return\n", cpl);
+            qemu_log("perv: %d | id:%d not in user mode return\n", cpl,id);
             return;
         }
         int prot;

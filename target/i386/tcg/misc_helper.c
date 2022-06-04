@@ -127,11 +127,22 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     }
     if(sendNotify){
         if(current)qemu_log("direct sending\n");
-        send_ipi(cpu_get_current_apic(), upid.nc.ndst, upid.nc.nv);
+        DeviceState *dev = cpu_get_current_apic();
+        int id = get_apic_id(dev);
+        uint8_t realdst = upid.nc.ndst >> 8;
+        qemu_log("the apic id is %d\n", id);
+        qemu_log("the ndst is %d real is %d\n", upid.nc.ndst, realdst);
+        send_ipi(cpu_get_current_apic(), realdst, upid.nc.nv);
     }
 
 }
 
+void helper_stui(CPUX86State *env){
+    env->uintr_uif = 1;
+    DeviceState *dev = cpu_get_current_apic();
+    int id = get_apic_id(dev);
+    qemu_log("xxxx  apic id is %d\n", id);
+}
 
 
 void helper_rdtscp(CPUX86State *env)
