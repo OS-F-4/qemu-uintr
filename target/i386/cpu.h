@@ -1380,16 +1380,23 @@ typedef struct XSavePKRU {
     uint32_t padding;
 } XSavePKRU;
 
+/* State component 10 is supervisor state used for context-switching the
+ * PASID state.*/
+typedef struct XSavePASID{
+    uint64_t pasid;
+}  XSavePASID;
+
 /* Ext. save area 14: UINTR state*/
 typedef struct XSaveUINTR {
     uint64_t handler;
     uint64_t stack_adjust;
-    struct{
-        uint32_t uittsz;
-        uint8_t uinv;
-        uint16_t reserved;
-        uint8_t uif; // bit7 is the uif
-    };
+
+    uint32_t uittsz;
+    uint8_t uinv;
+    uint8_t pad1;
+    uint8_t pad2;
+    uint8_t uif; // bit7 is the uif
+
     uint64_t upidaddr;
     uint64_t uirr;
     uint64_t uittaddr;
@@ -1434,6 +1441,7 @@ QEMU_BUILD_BUG_ON(sizeof(XSaveZMM_Hi256) != 0x200);
 QEMU_BUILD_BUG_ON(sizeof(XSaveHi16_ZMM) != 0x400);
 QEMU_BUILD_BUG_ON(sizeof(XSavePKRU) != 0x8);
 QEMU_BUILD_BUG_ON(sizeof(XSaveXTILECFG) != 0x40);
+QEMU_BUILD_BUG_ON(sizeof(XSaveUINTR) != 0x30);// 改
 QEMU_BUILD_BUG_ON(sizeof(XSaveXTILEDATA) != 0x2000);
 
 typedef struct ExtSaveArea {

@@ -137,12 +137,6 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
 
 }
 
-void helper_stui(CPUX86State *env){
-    env->uintr_uif = 1;
-    DeviceState *dev = cpu_get_current_apic();
-    int id = get_apic_id(dev);
-    qemu_log("xxxx  apic id is %d\n", id);
-}
 
 
 void helper_rdtscp(CPUX86State *env)

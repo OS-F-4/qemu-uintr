@@ -34,6 +34,7 @@
 #define XSAVE_ZMM_HI256_OFFSET  0x480
 #define XSAVE_HI16_ZMM_OFFSET   0x680
 #define XSAVE_PKRU_OFFSET       0xa80
+#define XSAVE_UINTR_OFFSET      0xa90
 
 typedef struct X86XSaveArea {
     X86LegacyXSaveArea legacy;
@@ -59,6 +60,7 @@ typedef struct X86XSaveArea {
     XSaveHi16_ZMM hi16_zmm_state;
     /* PKRU State: */
     XSavePKRU pkru_state;
+    XSavePASID pasid_state; // 改
     XSaveUINTR uintr_state; // 改
 } X86XSaveArea;
 
@@ -76,6 +78,7 @@ QEMU_BUILD_BUG_ON(offsetof(X86XSaveArea, opmask_state) != XSAVE_OPMASK_OFFSET);
 QEMU_BUILD_BUG_ON(offsetof(X86XSaveArea, zmm_hi256_state) != XSAVE_ZMM_HI256_OFFSET);
 QEMU_BUILD_BUG_ON(offsetof(X86XSaveArea, hi16_zmm_state) != XSAVE_HI16_ZMM_OFFSET);
 QEMU_BUILD_BUG_ON(offsetof(X86XSaveArea, pkru_state) != XSAVE_PKRU_OFFSET);
+QEMU_BUILD_BUG_ON(offsetof(X86XSaveArea, uintr_state) != XSAVE_UINTR_OFFSET); //改
 
 bool tcg_cpu_realizefn(CPUState *cs, Error **errp);
 

@@ -43,7 +43,7 @@
 
 #include "disas/capstone.h"
 #include "cpu-internal.h"
-#include <stdio.h>
+#include "qemu/log.h"
 static bool Debug = true;
 
 /* Helpers for building CPUID[2] descriptors: */
@@ -669,7 +669,7 @@ void x86_cpu_vendor_words2str(char *dst, uint32_t vendor1,
 #define TCG_APM_FEATURES 0
 #define TCG_6_EAX_FEATURES CPUID_6_EAX_ARAT
 #define TCG_XSAVE_FEATURES (CPUID_XSAVE_XSAVEOPT | CPUID_XSAVE_XGETBV1)
-          /* missing:
+          /* missing: 改!!!，添加了CPUID_XSAVE_XSAVES
           CPUID_XSAVE_XSAVEC, CPUID_XSAVE_XSAVES */
 #define TCG_14_0_ECX_FEATURES 0
 #define TCG_SGX_12_0_EAX_FEATURES 0
@@ -1410,13 +1410,16 @@ ExtSaveArea x86_ext_save_areas[XSAVE_STATE_AREA_COUNT] = {
             .size = sizeof(XSaveOpmask) },
     [XSTATE_ZMM_Hi256_BIT] =
           { .feature = FEAT_7_0_EBX, .bits = CPUID_7_0_EBX_AVX512F,
-            .size = sizeof(XSaveZMM_Hi256) },
+            .size = sizeof(XSaveZMM_Hi256) }, 
     [XSTATE_Hi16_ZMM_BIT] =
           { .feature = FEAT_7_0_EBX, .bits = CPUID_7_0_EBX_AVX512F,
             .size = sizeof(XSaveHi16_ZMM) },
     [XSTATE_PKRU_BIT] =
           { .feature = FEAT_7_0_ECX, .bits = CPUID_7_0_ECX_PKU,
             .size = sizeof(XSavePKRU) },
+    [XSTATE_UINTR_BIT] = // 改！！
+          { .feature = FEAT_7_0_EDX, .bits = CPUID_7_0_EDX_UINTR,
+            .size = sizeof(XSaveUINTR), .offset = 0xa90},
     [XSTATE_XTILE_CFG_BIT] = {
         .feature = FEAT_7_0_EDX, .bits = CPUID_7_0_EDX_AMX_TILE,
         .size = sizeof(XSaveXTILECFG),
@@ -1796,13 +1799,17 @@ static const X86CPUDefinition builtin_x86_defs[] = {
             CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA |
             CPUID_PSE36,
         .features[FEAT_1_ECX] =
-            CPUID_EXT_SSE3 | CPUID_EXT_CX16,
+            CPUID_EXT_SSE3 | CPUID_EXT_CX16 | CPUID_EXT_XSAVE, //改
+        .features[FEAT_7_0_EBX] = // 改
+            CPUID_7_0_EBX_MPX,
         .features[FEAT_8000_0001_EDX] =
             CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX,
         .features[FEAT_8000_0001_ECX] =
             CPUID_EXT3_LAHF_LM | CPUID_EXT3_SVM,
         .features[FEAT_7_0_EDX] =
             CPUID_7_0_EDX_UINTR,  // 改
+        .features[FEAT_XSAVE] = //改
+            CPUID_XSAVE_XSAVEOPT|CPUID_XSAVE_XGETBV1,
         .xlevel = 0x8000000A,
         .model_id = "QEMU Virtual CPU version " QEMU_HW_VERSION,
     },
@@ -5240,7 +5247,6 @@ void cpu_x86_cpuid(CPUX86State *env, uint32_t index, uint32_t count,
     topo_info.dies_per_pkg = env->nr_dies;
     topo_info.cores_per_die = cs->nr_cores;
     topo_info.threads_per_core = cs->nr_threads;
-
     /* Calculate & apply limits for different index ranges */
     if (index >= 0xC0000000) {
         limit = env->cpuid_xlevel2;

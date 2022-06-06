@@ -3,12 +3,12 @@
  * See the COPYING file in the top-level directory.
  */
 #include "qemu/osdep.h"
-#include  <stdio.h>
 #include "cpu.h"
+#include "qemu/log.h"
 
 void x86_cpu_xsave_all_areas(X86CPU *cpu, void *buf, uint32_t buflen)
 {   
-    printf("xsave all areas called\n"); //改 ！！！ XSAVE在这里 ？？？ 
+    qemu_log("xsave all areas called\n"); //改 ！！！ XSAVE在这里 ？？？ 
     CPUX86State *env = &cpu->env;
     const ExtSaveArea *e, *f;
     int i;

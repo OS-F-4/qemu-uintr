@@ -25,6 +25,7 @@
 #include "fpu/softfloat.h"
 #include "fpu/softfloat-macros.h"
 #include "helper-tcg.h"
+#include "qemu/log.h"
 
 /* float macros */
 #define FT0    (env->ft0)
@@ -2596,7 +2597,7 @@ static void do_xsave_pkru(CPUX86State *env, target_ulong ptr, uintptr_t ra)
 }
 
 static void do_xsave_uintr(CPUX86State *env, target_ulong ptr, uintptr_t ra){ //改
-    printf("do xsave uintr called\n");
+    qemu_log("do xsave uintr called\n");
     cpu_stq_data_ra(env, ptr, env->uintr_handler, ra);
     cpu_stq_data_ra(env, ptr+8, env->uintr_stackadjust, ra);
     cpu_stq_data_ra(env, ptr+16, env->uintr_misc, ra);
@@ -2648,10 +2649,9 @@ static uint64_t get_xinuse(CPUX86State *env)
 
 static bool Debug = true;
 static void do_xsave(CPUX86State *env, target_ulong ptr, uint64_t rfbm,
-                     uint64_t inuse, uint64_t opt, uintptr_t ra)
+                     uint64_t inuse, uint64_t opt, uintptr_t ra) // xsave 入口
 {
     uint64_t old_bv, new_bv;
-    if(Debug)printf("do xsave called\n"); // 改 xsave
     /* The OS must have enabled XSAVE.  */
     if (!(env->cr[4] & CR4_OSXSAVE_MASK)) {
         raise_exception_ra(env, EXCP06_ILLOP, ra);
@@ -2687,7 +2687,7 @@ static void do_xsave(CPUX86State *env, target_ulong ptr, uint64_t rfbm,
     }
     // 改
     if (opt & XSTATE_UINTR_MASK) {
-        if(Debug)printf("do xsave saving uintr componments !!!!\n"); // 改 xsave
+        if(Debug)qemu_log("do xsave saving uintr componments !!!!\n"); // 改 xsave
         do_xsave_uintr(env, ptr + XO(uintr_state), ra);
     }
 
@@ -2781,7 +2781,7 @@ static void do_xrstor_pkru(CPUX86State *env, target_ulong ptr, uintptr_t ra)
 }
 
 static void do_xrstor_uintr(CPUX86State *env, target_ulong ptr, uintptr_t ra){ //改
-    printf("do xrstror uintr called\n");
+    qemu_log("do xrstror uintr called\n");
     env->uintr_handler = cpu_ldq_data_ra(env, ptr, ra);
     env->uintr_stackadjust = cpu_ldq_data_ra(env, ptr+8, ra);
     // env->uintr_misc = cpu_ldq_data_ra(env, ptr+16, ra);

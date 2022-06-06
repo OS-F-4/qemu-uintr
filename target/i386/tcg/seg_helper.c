@@ -860,7 +860,38 @@ static inline target_ulong get_rsp_from_tss(CPUX86State *env, int level)
     return rsp;
 }
 
+static void switch_uif(CPUX86State *env, bool on){
+    CPUState *cs = env_cpu(env);
+    int prot;
+    uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
+    uintr_upid upid;
+    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
+    if(on){
+        // env->uintr_uif = 1;
+        upid.nc.reserved1 = 1;
+    }else{
+        // env->uintr_uif = 0;
+        upid.nc.reserved1 = 0;
+    }
+    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
+}
 
+static bool uif_enable(CPUX86State *env){
+    // return env->uintr_uif != 0;
+    CPUState *cs = env_cpu(env);
+    int prot;
+    uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
+    uintr_upid upid;
+    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
+    return upid.nc.reserved1 != 0;
+}
+
+void helper_stui(CPUX86State *env){
+    switch_uif(env, true);
+    DeviceState *dev = cpu_get_current_apic();
+    int id = get_apic_id(dev);
+    qemu_log("xxxx  apic id is %d\n", id);
+}
 
 
 // static bool Debug = true;
@@ -883,7 +914,7 @@ void helper_rrnzero(CPUX86State *env){ // 改
     env->regs[R_ESP] = esp;
     env->eflags &= ~(TF_MASK | RF_MASK);
     env->eip = env->uintr_handler;
-    env->uintr_uif = 0;
+    switch_uif(env, false);
 }
 
 bool in_uiret_called = false;
@@ -901,7 +932,7 @@ void helper_uiret(CPUX86State *env){
     env->eip = temprip;
     env->regs[R_ESP] = temprsp;
     env->eflags = (env->eflags & ~0x254dd5) |(temprfalgs & 0x254dd5);
-    env->uintr_uif = 1;
+    switch_uif(env, true);
 }
 
 static void helper_clear_eoi(CPUX86State *env){
@@ -939,7 +970,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         cpl = env->hflags & HF_CPL_MASK;
         DeviceState *dev = cpu_get_current_apic();
         int id = get_apic_id(dev);
-        if(env->uintr_uif == 0){
+        if(!uif_enable(env)){
             qemu_log("--uif zero,prev:%d | id:%d return\n",cpl, id);
             rrzero_count +=1; 
             if(rrzero_count > 200){
