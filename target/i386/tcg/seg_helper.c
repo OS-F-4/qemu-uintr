@@ -861,29 +861,29 @@ static inline target_ulong get_rsp_from_tss(CPUX86State *env, int level)
 }
 
 static void switch_uif(CPUX86State *env, bool on){
-    CPUState *cs = env_cpu(env);
-    int prot;
-    uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
-    uintr_upid upid;
-    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
+    // CPUState *cs = env_cpu(env);
+    // int prot;
+    // uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
+    // uintr_upid upid;
+    // cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
     if(on){
-        // env->uintr_uif = 1;
-        upid.nc.reserved1 = 1;
+        env->uintr_uif = 1;
+        // upid.nc.reserved1 = 1;
     }else{
-        // env->uintr_uif = 0;
-        upid.nc.reserved1 = 0;
+        env->uintr_uif = 0;
+        // upid.nc.reserved1 = 0;
     }
-    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
+    // cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
 }
 
 static bool uif_enable(CPUX86State *env){
-    // return env->uintr_uif != 0;
-    CPUState *cs = env_cpu(env);
-    int prot;
-    uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
-    uintr_upid upid;
-    cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
-    return upid.nc.reserved1 != 0;
+    return env->uintr_uif != 0;
+    // CPUState *cs = env_cpu(env);
+    // int prot;
+    // uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
+    // uintr_upid upid;
+    // cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
+    // return upid.nc.reserved1 != 0;
 }
 
 void helper_stui(CPUX86State *env){

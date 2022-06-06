@@ -83,8 +83,13 @@ void helper_rdtsc(CPUX86State *env) // ？？？ 读取时间相关的函数
 // static bool former = false;
 static bool current = false;
 void helper_senduipi(CPUX86State *env ,int reg_index){
+    qemu_log("reg_index:%d\n", reg_index);
     uint32_t uittsz = (uint32_t)env->uintr_misc;
     int uitte_index = env->regs[R_EAX];
+    if(reg_index == 244){
+        uitte_index = env->regs[R_R12];
+        qemu_log("read from r12, index :%d\n", uitte_index);
+    }
     if (uitte_index > uittsz){
         raise_exception_ra(env, EXCP0D_GPF, GETPC());
     }
