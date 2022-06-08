@@ -888,9 +888,9 @@ static bool uif_enable(CPUX86State *env){
 
 void helper_stui(CPUX86State *env){
     switch_uif(env, true);
-    DeviceState *dev = cpu_get_current_apic();
-    int id = get_apic_id(dev);
-    qemu_log("xxxx  apic id is %d\n", id);
+    // DeviceState *dev = cpu_get_current_apic();
+    // int id = get_apic_id(dev);
+    // qemu_log("xxxx  apic id is %d\n", id);
 }
 
 
@@ -945,6 +945,18 @@ static void helper_clear_eoi(CPUX86State *env){
 /* 64 bit interrupt */
 #define UINTR_UINV 0xec
 static int rrzero_count = 0;
+// extern unsigned long sended_time;
+// #include <time.h>
+// static unsigned long now(void) {
+// #ifdef __MACH__
+// 	return ((double)clock()) / CLOCKS_PER_SEC * 1e9;
+// #else
+// 	struct timespec ts;
+// 	timespec_get(&ts, TIME_UTC);
+
+// 	return ts.tv_sec * 1e9 + ts.tv_nsec;
+// #endif
+// }
 static void do_interrupt64(CPUX86State *env, int intno, int is_int,
                            int error_code, target_ulong next_eip, int is_hw) // 在用户态中断中 is_hw = 1 !!! ???？？？
 {
@@ -967,6 +979,8 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     bool send = false;
     if(intno == UINTR_UINV ){
         recognized = true;
+        // unsigned long duration = now() - sended_time;
+        // qemu_log("receive %ld us\n", duration/1000);
         cpl = env->hflags & HF_CPL_MASK;
         DeviceState *dev = cpu_get_current_apic();
         int id = get_apic_id(dev);
@@ -981,7 +995,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
             return;
         }
         //查看当前的权级
-        
+        // qemu_log("in intrrupt apic id: %d \n", id);
         // qemu_log("-|-| perv: %d \n", cpl);
         if(cpl != 3){
             helper_clear_eoi(env);
@@ -997,10 +1011,9 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         if(upid.puir != 0){
             env->uintr_rr = upid.puir;
             upid.puir = 0; // clear puir
-            cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true); // write back
             send = true;
         }
-        cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
+        cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);  // write back
 
         helper_clear_eoi(env);
         

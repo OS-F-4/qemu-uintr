@@ -23,6 +23,7 @@
 #include "exec/helper-proto.h"
 #include "exec/exec-all.h"
 #include "helper-tcg.h"
+#include "hw/pci/msi.h"
 //改
 #include "include/hw/i386/apic_internal.h"
 static bool Debug = true;
@@ -78,17 +79,30 @@ void helper_rdtsc(CPUX86State *env) // ？？？ 读取时间相关的函数
     env->regs[R_EDX] = (uint32_t)(val >> 32);
 }
 
+// #include <time.h>
+// unsigned long sended_time;
+// static unsigned long now(void) {
+// #ifdef __MACH__
+// 	return ((double)clock()) / CLOCKS_PER_SEC * 1e9;
+// #else
+// 	struct timespec ts;
+// 	timespec_get(&ts, TIME_UTC);
+
+// 	return ts.tv_sec * 1e9 + ts.tv_nsec;
+// #endif
+// }
 
 #define UPID_ON 1
 // static bool former = false;
 static bool current = false;
+// static int timex = 0;
+// static unsigned long cycle_time = 0;
 void helper_senduipi(CPUX86State *env ,int reg_index){
-    qemu_log("reg_index:%d\n", reg_index);
     uint32_t uittsz = (uint32_t)env->uintr_misc;
     int uitte_index = env->regs[R_EAX];
     if(reg_index == 244){
         uitte_index = env->regs[R_R12];
-        qemu_log("read from r12, index :%d\n", uitte_index);
+        // qemu_log("read from r12, index :%d\n", uitte_index);
     }
     if (uitte_index > uittsz){
         raise_exception_ra(env, EXCP0D_GPF, GETPC());
@@ -103,6 +117,7 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     cpu_physical_memory_rw(uitt_phyaddress + (uitte_index<<4), &uitte, 16,false);
 
     // read tempUPID from 16 bytes at tempUITTE.UPIDADDR;// under lock
+        qemu_mutex_lock_iothread();
     uint64_t upid_phyaddress = get_hphys2(cs, uitte.target_upid_addr, MMU_DATA_LOAD, &prot);
     struct uintr_upid upid;
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
@@ -119,8 +134,9 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
         sendNotify = false;
     }
     //write tempUPID to 16 bytes at tempUITTE.UPIDADDR;// release lock
+    // qemu_log("upidaddr is 0x%lx  upid.puir is 0x%lx\n", uitte.target_upid_addr, upid.puir);
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
-
+        qemu_mutex_unlock_iothread();
 
 
     if(Debug && current){
@@ -133,11 +149,18 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     if(sendNotify){
         if(current)qemu_log("direct sending\n");
         DeviceState *dev = cpu_get_current_apic();
-        int id = get_apic_id(dev);
+        // int id = get_apic_id(dev);
         uint8_t realdst = upid.nc.ndst >> 8;
-        qemu_log("the apic id is %d\n", id);
-        qemu_log("the ndst is %d real is %d\n", upid.nc.ndst, realdst);
-        send_ipi(cpu_get_current_apic(), realdst, upid.nc.nv);
+        // qemu_log("\nthe apic id is %d\n", id);
+        // qemu_log("the ndst is %d real is %d\n\n", upid.nc.ndst, realdst);
+        // sended_time = now();
+        // timex++;
+        // if(timex == 2){
+            // timex = 0;
+            // qemu_log("XXXX %ld us\n", (now()- cycle_time)/1000);
+            // cycle_time = now();
+        // }
+        send_ipi(dev, realdst, upid.nc.nv);
     }
 
 }

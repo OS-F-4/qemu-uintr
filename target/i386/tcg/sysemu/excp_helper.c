@@ -21,6 +21,7 @@
 #include "cpu.h"
 #include "exec/exec-all.h"
 #include "tcg/helper-tcg.h"
+#include "qemu/log.h"
 
 #define PG_ERROR_OK (-1)
 
