@@ -945,18 +945,6 @@ static void helper_clear_eoi(CPUX86State *env){
 /* 64 bit interrupt */
 #define UINTR_UINV 0xec
 static int rrzero_count = 0;
-// extern unsigned long sended_time;
-// #include <time.h>
-// static unsigned long now(void) {
-// #ifdef __MACH__
-// 	return ((double)clock()) / CLOCKS_PER_SEC * 1e9;
-// #else
-// 	struct timespec ts;
-// 	timespec_get(&ts, TIME_UTC);
-
-// 	return ts.tv_sec * 1e9 + ts.tv_nsec;
-// #endif
-// }
 static void do_interrupt64(CPUX86State *env, int intno, int is_int,
                            int error_code, target_ulong next_eip, int is_hw) // 在用户态中断中 is_hw = 1 !!! ???？？？
 {
@@ -979,12 +967,10 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     bool send = false;
     if(intno == UINTR_UINV ){
         recognized = true;
-        // unsigned long duration = now() - sended_time;
-        // qemu_log("receive %ld us\n", duration/1000);
         cpl = env->hflags & HF_CPL_MASK;
-        DeviceState *dev = cpu_get_current_apic();
-        int id = get_apic_id(dev);
         if(!uif_enable(env)){
+            DeviceState *dev = cpu_get_current_apic();
+            int id = get_apic_id(dev);
             qemu_log("--uif zero,prev:%d | id:%d return\n",cpl, id);
             rrzero_count +=1; 
             if(rrzero_count > 200){
@@ -994,17 +980,17 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
             helper_clear_eoi(env);
             return;
         }
-        //查看当前的权级
-        // qemu_log("in intrrupt apic id: %d \n", id);
-        // qemu_log("-|-| perv: %d \n", cpl);
+
         if(cpl != 3){
+            //查看当前的权级
+            DeviceState *dev = cpu_get_current_apic();
+            int id = get_apic_id(dev);
             helper_clear_eoi(env);
             qemu_log("perv: %d | id:%d not in user mode return\n", cpl,id);
             return;
         }
-        int prot;
         CPUState *cs = env_cpu(env);
-        uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, &prot);
+        uint64_t upid_phyaddress = get_hphys2(cs, env->uintr_pd, MMU_DATA_LOAD, NULL);
         uintr_upid upid;
         cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
         upid.nc.status &= (~1); // clear on
@@ -1014,12 +1000,8 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
             send = true;
         }
         cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);  // write back
-
         helper_clear_eoi(env);
-        
-
         if(send)helper_rrnzero(env);
-
         return;
     }
 

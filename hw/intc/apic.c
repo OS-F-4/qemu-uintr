@@ -949,16 +949,8 @@ int get_apic_id(DeviceState *dev){
     APICCommonState *s = APIC(dev);
     return s->id;
 }
-static void apic_deliver2(DeviceState *dev, uint8_t dest, uint8_t dest_mode,
-                         uint8_t delivery_mode, uint8_t vector_num,
-                         uint8_t trigger_mode) ;
-void send_ipi(DeviceState *dev, uint8_t dest, uint8_t nv){
-    qemu_mutex_lock_iothread();
-    apic_deliver2(dev, dest, 0 ,APIC_DM_FIXED, nv, APIC_TRIGGER_EDGE);
-    qemu_mutex_unlock_iothread();
-}
 
-static void apic_deliver2(DeviceState *dev, uint8_t dest, uint8_t dest_mode,
+static void apic_deliver2(uint8_t dest, uint8_t dest_mode,
                          uint8_t delivery_mode, uint8_t vector_num,
                          uint8_t trigger_mode) // delivery mode APIC_DM_FIXED  dest mode: 0 , trigger_mode  trigger: APIC_TRIGGER_EDGE
 {
@@ -1004,6 +996,12 @@ static void apic_deliver2(DeviceState *dev, uint8_t dest, uint8_t dest_mode,
     }
 
     apic_bus_deliver(deliver_bitmask, delivery_mode, vector_num, trigger_mode);
+}
+
+void send_ipi(uint8_t dest, uint8_t nv){
+    qemu_mutex_lock_iothread();
+    apic_deliver2(dest, 0 ,APIC_DM_FIXED, nv, APIC_TRIGGER_EDGE);
+    qemu_mutex_unlock_iothread();
 }
 
 type_init(apic_register_types)
