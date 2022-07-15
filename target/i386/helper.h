@@ -236,3 +236,4 @@ DEF_HELPER_2(senduipi, void, env ,int) // 改
 DEF_HELPER_1(rrnzero, void, env)
 DEF_HELPER_1(uiret, void, env)
 DEF_HELPER_1(stui, void, env)
+DEF_HELPER_1(clui, void, env)

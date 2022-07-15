@@ -7712,8 +7712,8 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
             gen_ldst_modrm(env, s, modrm, ot, OR_TMP0, 1);
             break;
         case 0xee: /* rdpkru */
-            if(prefixes & PREFIX_REPZ){
-                env->uintr_uif = 0;
+            if(prefixes & PREFIX_REPZ){ /* CLUI */
+                gen_helper_clui(cpu_env);
                 break;
             }
             if (prefixes & PREFIX_LOCK) {
@@ -7724,19 +7724,19 @@ static inline void gen_op_ld_v(DisasContext *s, int idx, TCGv t0, TCGv a0)
             tcg_gen_extr_i64_tl(cpu_regs[R_EAX], cpu_regs[R_EDX], s->tmp1_i64);
             break;
         case 0xec:
-            if (prefixes & PREFIX_REPZ){ // UIRET
+            if (prefixes & PREFIX_REPZ){ /* UIRET */
                 gen_helper_uiret(cpu_env);
                 uiret_called = true;
                 gen_eob(s);
             }
             break;
         case 0xed:
-            if (prefixes & PREFIX_REPZ){ // TESTUI
+            if (prefixes & PREFIX_REPZ){ /* TESTUI */
                 qemu_log("qemu:caught 0xf30f01ed TESTUI\n"); // 改
             }
             break;
         case 0xef: /* wrpkru */
-            if(prefixes & PREFIX_REPZ){ // STUI
+            if(prefixes & PREFIX_REPZ){ /* STUI */
                 gen_helper_stui(cpu_env);
                 break;
             }

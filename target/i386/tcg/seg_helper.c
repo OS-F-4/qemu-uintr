@@ -888,9 +888,10 @@ static bool uif_enable(CPUX86State *env){
 
 void helper_stui(CPUX86State *env){
     switch_uif(env, true);
-    // DeviceState *dev = cpu_get_current_apic();
-    // int id = get_apic_id(dev);
-    // qemu_log("xxxx  apic id is %d\n", id);
+}
+
+void helper_clui(CPUX86State *env){
+    switch_uif(env, false);
 }
 
 
@@ -936,8 +937,8 @@ void helper_uiret(CPUX86State *env){
 }
 
 static void helper_clear_eoi(CPUX86State *env){
-        DeviceState *dev = cpu_get_current_apic();
-        apic_clear_eoi(dev);
+    DeviceState *dev = cpu_get_current_apic();
+    apic_clear_eoi(dev);
 }
 
 
