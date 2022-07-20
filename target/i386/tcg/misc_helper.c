@@ -92,7 +92,6 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
         raise_exception_ra(env, EXCP0D_GPF, GETPC());
     }
 
-    qemu_log("senduipi core: %d uitte index:%d\n", get_apic_id(cpu_get_current_apic()), uitte_index);
     CPUState *cs = env_cpu(env);
 
     // read tempUITTE from 16 bytes at UITTADDR+ (reg « 4);
@@ -121,11 +120,13 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);
     qemu_mutex_unlock_iothread();
 
+    qemu_log("senduipi core: %d uitte index:%d  dist core: %d ifsend: %d, nv: %d\n", get_apic_id(cpu_get_current_apic()), uitte_index, upid.nc.ndst >> 8, sendNotify,upid.nc.nv);
 
     if(sendNotify){
         uint8_t realdst = upid.nc.ndst >> 8;
-        send_ipi(realdst, upid.nc.nv);
+        send_ipi(realdst, 0xec);
     }
+
 
 }
 

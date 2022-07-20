@@ -969,6 +969,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
     }
     bool send = false;
     if(intno == UINTR_UINV ){
+        qemu_log("receive, cur core:%d\n",get_apic_id(cpu_get_current_apic()));
         recognized = true;
         cpl = env->hflags & HF_CPL_MASK;
         if(!uif_enable(env)){
@@ -1005,6 +1006,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
         cpu_physical_memory_rw(upid_phyaddress, &upid, 16, true);  // write back
         helper_clear_eoi(env);
         if(send)helper_rrnzero(env);
+        else qemu_log("do not go to handler\n");
         return;
     }
 
