@@ -359,6 +359,7 @@ hwaddr get_hphys2(CPUState *cs, hwaddr gphys, MMUAccessType access_type,
     mmu_translate(cs, gphys, get_hphys, env->cr[3], access_type,
                                    MMU_KNOSMAP_IDX , get_pg_mode(env) ,
                                    &hphys, &page_size, &next_prot);
+    // qemu_log("exit info: %d next prot: 0x%x\n", exit_info, next_prot);
     return hphys;
 }
 

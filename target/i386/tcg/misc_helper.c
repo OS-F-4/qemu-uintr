@@ -92,6 +92,7 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
         raise_exception_ra(env, EXCP0D_GPF, GETPC());
     }
 
+    qemu_log("senduipi core: %d uitte index:%d\n", get_apic_id(cpu_get_current_apic()), uitte_index);
     CPUState *cs = env_cpu(env);
 
     // read tempUITTE from 16 bytes at UITTADDR+ (reg « 4);

@@ -887,10 +887,12 @@ static bool uif_enable(CPUX86State *env){
 }
 
 void helper_stui(CPUX86State *env){
+    qemu_log("stui core: %d\n", get_apic_id(cpu_get_current_apic()));
     switch_uif(env, true);
 }
 
 void helper_clui(CPUX86State *env){
+    qemu_log("clui core: %d\n", get_apic_id(cpu_get_current_apic()));
     switch_uif(env, false);
 }
 
