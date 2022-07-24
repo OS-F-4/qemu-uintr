@@ -872,7 +872,7 @@ static const MemoryRegionOps apic_io_ops = {
 
 static void apic_realize(DeviceState *dev, Error **errp)
 {   
-    if(Debug)qemu_log("~ ~ ~ ~apic realize called\n");
+
     APICCommonState *s = APIC(dev);
 
     if (s->id >= MAX_APICS) {
@@ -958,7 +958,6 @@ static void apic_deliver2(uint8_t dest, uint8_t dest_mode,
     uint32_t deliver_bitmask[MAX_APIC_WORDS];
     int dest_shorthand = (s->icr[0] >> 18) & 3;
     APICCommonState *apic_iter;
-    qemu_log("dest_shorthand:%d\n", dest_shorthand);
     switch (dest_shorthand) {
     case 0:
         apic_get_delivery_bitmask(deliver_bitmask, dest, dest_mode);

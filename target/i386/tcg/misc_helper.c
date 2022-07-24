@@ -91,6 +91,7 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     if (uitte_index > uittsz){
         raise_exception_ra(env, EXCP0D_GPF, GETPC());
     }
+    qemu_log("uitte index:%d\n", uitte_index);
 
     CPUState *cs = env_cpu(env);
 
@@ -102,6 +103,7 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
     // read tempUPID from 16 bytes at tempUITTE.UPIDADDR;// under lock
     qemu_mutex_lock_iothread();
     uint64_t upid_phyaddress = get_hphys2(cs, uitte.target_upid_addr, MMU_DATA_LOAD, NULL);
+    qemu_log("uitt addr: 0x%lx  upid addr: 0x%lx\n", env->uintr_tt, uitte.target_upid_addr); 
     struct uintr_upid upid;
     cpu_physical_memory_rw(upid_phyaddress, &upid, 16, false);
     // tempUPID.PIR[tempUITTE.UV] := 1;
@@ -124,7 +126,7 @@ void helper_senduipi(CPUX86State *env ,int reg_index){
 
     if(sendNotify){
         uint8_t realdst = upid.nc.ndst >> 8;
-        send_ipi(realdst, 0xec);
+        send_ipi(realdst, upid.nc.nv);
     }
 
 

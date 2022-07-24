@@ -935,6 +935,7 @@ void helper_uiret(CPUX86State *env){
     env->eip = temprip;
     env->regs[R_ESP] = temprsp;
     env->eflags = (env->eflags & ~0x254dd5) |(temprfalgs & 0x254dd5);
+    qemu_log("XXXuiret \n");
     switch_uif(env, true);
 }
 
@@ -977,7 +978,7 @@ static void do_interrupt64(CPUX86State *env, int intno, int is_int,
             int id = get_apic_id(dev);
             qemu_log("--uif zero,prev:%d | id:%d return\n",cpl, id);
             rrzero_count +=1; 
-            if(rrzero_count > 200){
+            if(rrzero_count > 2000){
                 qemu_log("too many zeros, exit\n");
                 exit(2);
             }
