@@ -1410,16 +1410,16 @@ ExtSaveArea x86_ext_save_areas[XSAVE_STATE_AREA_COUNT] = {
             .size = sizeof(XSaveOpmask) },
     [XSTATE_ZMM_Hi256_BIT] =
           { .feature = FEAT_7_0_EBX, .bits = CPUID_7_0_EBX_AVX512F,
-            .size = sizeof(XSaveZMM_Hi256) }, 
+            .size = sizeof(XSaveZMM_Hi256) },
     [XSTATE_Hi16_ZMM_BIT] =
           { .feature = FEAT_7_0_EBX, .bits = CPUID_7_0_EBX_AVX512F,
             .size = sizeof(XSaveHi16_ZMM) },
     [XSTATE_PKRU_BIT] =
           { .feature = FEAT_7_0_ECX, .bits = CPUID_7_0_ECX_PKU,
             .size = sizeof(XSavePKRU) },
-    [XSTATE_UINTR_BIT] = // 改！！
-          { .feature = FEAT_7_0_EDX, .bits = CPUID_7_0_EDX_UINTR,
-            .size = sizeof(XSaveUINTR), .offset = 0xa90},
+    // [XSTATE_UINTR_BIT] = // 改！！
+    //       { .feature = FEAT_7_0_EDX, .bits = CPUID_7_0_EDX_UINTR,
+    //         .size = sizeof(XSaveUINTR), .offset = 0xa90},
     [XSTATE_XTILE_CFG_BIT] = {
         .feature = FEAT_7_0_EDX, .bits = CPUID_7_0_EDX_AMX_TILE,
         .size = sizeof(XSaveXTILECFG),
@@ -1799,9 +1799,10 @@ static const X86CPUDefinition builtin_x86_defs[] = {
             CPUID_MTRR | CPUID_CLFLUSH | CPUID_MCA |
             CPUID_PSE36,
         .features[FEAT_1_ECX] =
-            CPUID_EXT_SSE3 | CPUID_EXT_CX16 | CPUID_EXT_XSAVE, //改
-        .features[FEAT_7_0_EBX] = // 改
-            CPUID_7_0_EBX_MPX,
+            CPUID_EXT_SSE3 | CPUID_EXT_CX16,
+            // |  CPUID_EXT_XSAVE, //改
+        // .features[FEAT_7_0_EBX] = // 改
+        //     CPUID_7_0_EBX_MPX,
         .features[FEAT_8000_0001_EDX] =
             CPUID_EXT2_LM | CPUID_EXT2_SYSCALL | CPUID_EXT2_NX,
         .features[FEAT_8000_0001_ECX] =
@@ -4205,6 +4206,8 @@ static const X86CPUDefinition builtin_x86_defs[] = {
             CPUID_7_0_EBX_INVPCID,
         .features[FEAT_7_0_ECX] =
             CPUID_7_0_ECX_UMIP | CPUID_7_0_ECX_RDPID | CPUID_7_0_ECX_PKU,
+        .features[FEAT_7_0_EDX] =
+            CPUID_7_0_EDX_FSRM,
         .features[FEAT_XSAVE] =
             CPUID_XSAVE_XSAVEOPT | CPUID_XSAVE_XSAVEC |
             CPUID_XSAVE_XGETBV1 | CPUID_XSAVE_XSAVES,
